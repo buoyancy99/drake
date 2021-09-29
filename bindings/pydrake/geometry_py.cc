@@ -22,7 +22,9 @@
 #include "drake/geometry/geometry_roles.h"
 #include "drake/geometry/meshcat.h"
 #include "drake/geometry/meshcat_visualizer.h"
+#include "drake/geometry/optimization/bspline_graph_of_convex_sets.h"
 #include "drake/geometry/optimization/cartesian_product.h"
+#include "drake/geometry/optimization/graph_of_convex_sets.h"
 #include "drake/geometry/optimization/hpolyhedron.h"
 #include "drake/geometry/optimization/hyperellipsoid.h"
 #include "drake/geometry/optimization/iris.h"
@@ -1847,13 +1849,55 @@ void def_geometry_optimization(py::module m) {
           doc.IrisOptions.iteration_limit.doc)
       .def_readwrite("termination_threshold",
           &IrisOptions::termination_threshold,
-          doc.IrisOptions.termination_threshold.doc);
+          doc.IrisOptions.termination_threshold.doc)
+      .def_readwrite("enable_ibex", &IrisOptions::enable_ibex,
+          doc.IrisOptions.enable_ibex.doc);
 
   m.def("Iris", &Iris, py::arg("obstacles"), py::arg("sample"),
       py::arg("domain"), py::arg("options") = IrisOptions(), doc.Iris.doc);
 
   m.def("MakeIrisObstacles", &MakeIrisObstacles, py::arg("query_object"),
       py::arg("reference_frame") = std::nullopt, doc.MakeIrisObstacles.doc);
+
+  m.def("IrisInConfigurationSpace", &IrisInConfigurationSpace, py::arg("plant"),
+      py::arg("context"), py::arg("sample"), py::arg("options") = IrisOptions(),
+      doc.IrisInConfigurationSpace.doc);
+
+  {
+    const auto& cls_doc = doc.BsplineTrajectoryThroughUnionOfHPolyhedra;
+    using Class = BsplineTrajectoryThroughUnionOfHPolyhedra;
+    py::class_<Class>(
+        m, "BsplineTrajectoryThroughUnionOfHPolyhedra", cls_doc.doc)
+        .def(py::init<const Eigen::Ref<const Eigen::VectorXd>&,
+                 const Eigen::Ref<const Eigen::VectorXd>&,
+                 const std::vector<HPolyhedron>&>(),
+            py::arg("source"), py::arg("target"), py::arg("regions"),
+            cls_doc.ctor.doc)
+        .def("Solve", &Class::Solve, py::arg("use_rounding") = false,
+            cls_doc.Solve.doc)
+        .def("order", &Class::order, cls_doc.order.doc)
+        .def("max_repetitions", &Class::max_repetitions,
+            cls_doc.max_repetitions.doc)
+        .def("set_order", &Class::set_order, py::arg("order"),
+            cls_doc.set_order.doc)
+        .def("set_max_repetitions", &Class::set_max_repetitions,
+            py::arg("max_repetitions"), cls_doc.set_max_repetitions.doc)
+        .def("set_extra_control_points_per_region",
+            &Class::set_extra_control_points_per_region,
+            py::arg("extra_control_points_per_region"),
+            cls_doc.set_extra_control_points_per_region.doc)
+        .def("set_max_velocity", &Class::set_max_velocity,
+            py::arg("max_velocity"), cls_doc.set_max_velocity.doc)
+        .def("ambient_dimension", &Class::ambient_dimension,
+            cls_doc.ambient_dimension.doc)
+        .def("num_regions", &Class::num_regions, cls_doc.num_regions.doc)
+        .def("extra_control_points_per_region",
+            &Class::extra_control_points_per_region,
+            cls_doc.extra_control_points_per_region.doc)
+        .def("source", &Class::source, cls_doc.source.doc)
+        .def("target", &Class::target, cls_doc.target.doc)
+        .def("max_velocity", &Class::max_velocity, cls_doc.max_velocity.doc);
+  }
 }
 
 // Test-only code.
